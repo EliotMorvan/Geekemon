@@ -1,1 +1,3 @@
 # Geekemon
+This project has been realized in Pascal and is based on the known Pokemon licence. Characters present in the game are fictional characters from movies, series...
+The resume and explanations are in French.
