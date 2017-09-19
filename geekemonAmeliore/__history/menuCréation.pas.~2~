@@ -1,0 +1,241 @@
+unit menuCréation;
+//Cette unité contient les sous-programmes relatifs au début du jeu.
+interface
+
+uses system.sysutils, geekemon, Améliorations;
+function menu : integer;
+function choixNom() : string;
+procedure choixStarter (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe);
+procedure démarrer();
+function renommage (var geekEquipe :ArrayOfEquipe): string;
+
+implementation
+
+uses scénario, changementSalle;
+
+procedure démarrer();
+
+var
+  nom1 : string;
+  quitter : integer;
+  nbPotion : integer;
+  geekEquipe : arrayofEquipe;
+  dressEquipe : arrayofEquipeDresseur;
+  geekedex : arrayofGeekemon;
+  avancement : avancementQuete;
+  nomDresseurs : arrayofdresseurs;
+  equipeStockage : arrayofpc;
+
+
+begin
+  //Les variables locales prennent les valeurs des tableaux
+  //déclarés dans les fonctions de l'unité geekemon
+  geekedex := renvoyerTableauGeekemon;
+  geekEquipe := renvoyergeekEquipe();
+  dressEquipe := renvoyerEquipeDresseur();
+  avancement := renvoyerAvancementQuete();
+  nomDresseurs := renvoyerNomDresseurs();
+  equipestockage := renvoyerPC();
+  quitter := menu();
+  nbPotion := 0;
+  while quitter = 1 do
+  //Si menu renvoie la valeur 1, on joue, sinon le programme s'arrête
+  begin
+    writeln;
+    scenarIntroduction1(nom1);
+    choixStarter(geekedex, geekEquipe);
+    scenarIntroduction2(geekedex, geekEquipe, nbPotion, DressEquipe);
+    changementDeSalle(geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+   end;
+
+  readln;
+end;
+/////////////////////////////
+function menu : integer;
+  //L'écran titre, le joueur choisit de jouer ou de quitter le jeu.
+var
+  choixMenu : integer;
+begin
+  writeln;
+  couleurTexte(4);
+  writeln ('                           ¦¦¦¦¦¦+ ¦¦¦¦¦¦¦+¦¦¦¦¦¦¦+¦¦+  ¦¦+¦¦¦¦¦¦¦+¦¦¦+   ¦¦¦+ ¦¦¦¦¦¦+ ¦¦¦+   ¦¦+');
+  writeln ('                          ¦¦+----+ ¦¦+----+¦¦+----+¦¦¦ ¦¦++¦¦+----+¦¦¦¦+ ¦¦¦¦¦¦¦+---¦¦+¦¦¦¦+  ¦¦¦');
+  couleurTexte(8);
+  writeln ('                          ¦¦¦  ¦¦¦+¦¦¦¦¦+  ¦¦¦¦¦+  ¦¦¦¦¦++ ¦¦¦¦¦+  ¦¦+¦¦¦¦+¦¦¦¦¦¦   ¦¦¦¦¦+¦¦+ ¦¦¦');
+  couleurTexte(15);
+  writeln ('                          ¦¦¦   ¦¦¦¦¦+--+  ¦¦+--+  ¦¦+-¦¦+ ¦¦+--+  ¦¦¦+¦¦++¦¦¦¦¦¦   ¦¦¦¦¦¦+¦¦+¦¦¦');
+  writeln ('                          +¦¦¦¦¦¦++¦¦¦¦¦¦¦+¦¦¦¦¦¦¦+¦¦¦  ¦¦+¦¦¦¦¦¦¦+¦¦¦ +-+ ¦¦¦+¦¦¦¦¦¦++¦¦¦ +¦¦¦¦¦');
+  writeln ('                           +-----+ +------++------++-+  +-++------++-+     +-+ +-----+ +-+  +---+');
+  writeln;
+  writeln;
+  writeln;
+  writeln ('                  ###########                                        ');
+  writeln ('                 ###############        __-----__          ##        ');
+  writeln ('               ##################    ###          \       ####       ');
+  writeln ('               ################## #### #            \     # ##       ');
+  writeln ('                ####################            \~~\  \   ,##",      ');
+  writeln ('                 #################       /~~\    \## \  \"     :              Que veux tu faire?  ');
+  writeln ('                   ###############       \    \   \##" /       :     ');
+  writeln ('                             #######       \### \    /         :              1. Jouer            ');
+  writeln ('                             #############  \###/             :               2. Quitter          ');
+  writeln ('                              ########                       :       ');
+  writeln ('                               ######   __                  :        ');
+  writeln ('                                ####   /\                  /         ');
+  writeln ('                     ############ ###    \\______________/|          ');
+  writeln ('                   ##################     \ __         / /           ');
+  writeln ('                 ####################\__    \  \---\,/ /             ');
+  writeln ('                 ###################    \     \_____/ /              ');
+  writeln ('                  #################       \_________/                ');
+  writeln ('                   ###############                                   ');
+  writeln ('                     ###########                                     ');
+  deplacerCurseurXY(78,20);
+  choixMenu := readVerif(1,2);
+  writeln;
+  menu :=choixMenu;
+  effacerEcran;
+  //barre;
+  effacerEcran;
+
+end;
+
+//////////////////////
+function choixNom () : string;
+  //Le choix du nom, ce coup ci inplémenté dans le scénario.
+var
+  nom : string;
+begin
+    deplacerCurseurXY(0,2);
+    couleurTexte(14);
+    writeln ('                 _             ');
+    writeln ('               /X \            ');
+    writeln ('             _------_          ');
+    writeln ('            /        \         ');
+    writeln ('           |          |        ');
+    writeln ('           |          |        ');
+    writeln ('           |     __  __)       ');
+    writeln ('           |    /  \/  \       ');
+    writeln ('          /\/\ (o   )o  )      ');
+    writeln ('          /c    \__/ --.       ');
+    writeln ('          \_   _-------''       ');
+    writeln ('           |  /         \      ');
+    writeln ('           | | ''\_______)      ');
+    writeln ('           |  \_____)          ');
+    writeln ('           |_____ |            ');
+    writeln ('           |_____/\/\          ');
+    writeln ('          /        \           ');
+    couleurTexte(15);
+    deplacerCurseurXY(33,5);
+    writeln ('Veuillez rentrer votre nom :');
+    deplacerCurseurXY(33,7);
+    readln (nom);
+    choixNom := nom;
+    deplacerCurseurXY(33,9);
+    writeln ('Je suis ravi de te rencontrer ', nom,'.');
+    readln;
+    effacerEcran;
+    writeln;
+end;
+
+/////////////////////////
+procedure choixStarter (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe);
+
+var
+  starter : integer;
+
+begin
+  deplacerCurseurXY(0,16);
+  writeln ('1.');
+  deplacerCurseurXY(25,16);
+  writeln ('2.');
+  deplacerCurseurXY(48,16);
+  writeln ('3.');
+  starter := readVerif(1,3);
+  if starter = 1 then
+  //Le premier geekemon de l'équipe prend les caractéristiques
+  //qui lui sont associées dans le geekedex.
+  //Le nombre de geekemons prend la valeur 1.
+  begin
+    geekEquipe[0].nom := geekedex[0].nom;
+    geekEquipe[0].COMP1:= geekedex[0].COMP1;
+    geekEquipe[0].COMP2:= geekedex[0].COMP2;
+    geekEquipe[0].COMP3:= geekedex[0].COMP3;
+    geekEquipe[0].nomComp1:= geekedex[0].nomComp1;
+    geekEquipe[0].nomComp2:= geekedex[0].nomComp2;
+    geekEquipe[0].nomComp3:= geekedex[0].nomComp3;
+    geekEquipe[0].accesCompetence3 := false;
+    geekEquipe[0].DEF := geekedex[0].DEF;
+    geekEquipe[0].PVdeBase := geekedex[0].PV;
+    geekEquipe[0].PVactuels := geekedex[0].PV;
+    geekEquipe[0].EXP := 0;
+    geekEquipe[0].NIV := 1;
+    geekEquipe[0].nbGeekemons := 1;
+    renommage(geekEquipe);
+    //La fonction renommage laisse au joueur le choix de
+    //renommer son starter.
+  end;
+  if starter = 2 then
+  begin
+    geekEquipe[0].nom :=  geekedex[1].nom;
+    geekEquipe[0].COMP1:= geekedex[1].COMP1;
+    geekEquipe[0].COMP2:= geekedex[1].COMP2;
+    geekEquipe[0].COMP3:= geekedex[1].COMP3;
+    geekEquipe[0].nomComp1:= geekedex[1].nomComp1;
+    geekEquipe[0].nomComp2:= geekedex[1].nomComp2;
+    geekEquipe[0].nomComp3:= geekedex[1].nomComp3;
+    geekEquipe[0].accesCompetence3 := false;
+    geekEquipe[0].DEF := geekedex[1].DEF;
+    geekEquipe[0].PVdeBase := geekedex[1].PV;
+    geekEquipe[0].PVactuels := geekedex[1].PV;
+    geekEquipe[0].EXP := 0;
+    geekEquipe[0].NIV := 1;
+    geekEquipe[0].nbGeekemons := 1;
+    renommage(geekEquipe);
+  end;
+  if starter = 3 then
+  begin
+    geekEquipe[0].nom :=  geekedex[2].nom;
+    geekEquipe[0].COMP1:= geekedex[2].COMP1;
+    geekEquipe[0].COMP2:= geekedex[2].COMP2;
+    geekEquipe[0].COMP3:= geekedex[2].COMP3;
+    geekEquipe[0].nomComp1:= geekedex[2].nomComp1;
+    geekEquipe[0].nomComp2:= geekedex[2].nomComp2;
+    geekEquipe[0].nomComp3:= geekedex[2].nomComp3;
+    geekEquipe[0].accesCompetence3 := false;
+    geekEquipe[0].DEF := geekedex[2].DEF;
+    geekEquipe[0].PVdeBase := geekedex[2].PV;
+    geekEquipe[0].PVactuels := geekedex[2].PV;
+    geekEquipe[0].EXP := 0;
+    geekEquipe[0].NIV := 1;
+    geekEquipe[0].nbGeekemons := 1;
+    renommage(geekEquipe);
+  end;
+  effacerEcran;
+  writeln ('Félicitations, votre premier geekemon est ',geekEquipe[0].nom,'.');
+  readln;
+  effacerEcran;
+end;
+
+/////////////////////////////
+function renommage (var geekEquipe :ArrayOfEquipe): string;
+//Cette fonction renvoie le surnom du starter.
+
+var
+  choixrenom: integer;
+  surnom : string;
+begin
+  writeln('Voulez vous renommer votre ',geekequipe[0].nom,'?');
+  writeln('1 : Oui');
+  writeln('2 : Non');
+
+  choixrenom := readVerif(1,2);
+  if choixrenom=1 then
+  begin
+    writeln;
+    writeln('Veuillez saisir le surnom de votre geekemon : ');
+    readln(surnom);
+    geekequipe[0].nom :=surnom;
+    renommage:=surnom;
+  end
+  else
+end;
+end.

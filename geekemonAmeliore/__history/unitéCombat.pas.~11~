@@ -1,0 +1,1678 @@
+unit unitéCombat;
+//Cette unité contient tout le système de combat du jeu, ainsi que le système d'évolution des caractéristiques des geekemons.
+interface
+uses geekemon, ETDDG;
+procedure combatGeekemonSauvage (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomdresseurs : arrayofdresseurs; equipeStockage : arrayofpc; quitter : integer);
+procedure combat (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; numéroGeekemon : integer; var numGeekemonEquipe : integer; nom1 : string ; var avancement : avancementQuete);
+procedure combatVsGeekDresseur (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var numGeekemonEquipe : integer; var numDressEquipe : integer);
+procedure capture (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var numGeekemonEquipe : integer; var numéroGeekemon : integer ; var nom1 : string; var avancement : avancementQuete; nomdresseurs : arrayofdresseurs; equipeStockage : arrayofpc; quitter : integer);
+procedure choixDresseur (var geekedex : arrayOfGeekemon;var  geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomdresseurs : arrayofdresseurs; equipeStockage : arrayofpc; quitter : integer);
+procedure combatDresseur (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomDresseurs : arrayofdresseurs; numDressEquipe : integer; equipeStockage : arrayofpc; quitter : integer);
+procedure choixBoss (var geekedex : arrayOfGeekemon;var  geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomdresseurs : arrayofdresseurs; numéroBoss : integer; equipeStockage : arrayofpc; quitter : integer);
+procedure combatBoss(var geekedex : arrayOfGeekemon;var  geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomdresseurs : arrayofdresseurs; var numDressEquipe : integer; equipeStockage : arrayofpc; quitter : integer);
+procedure niveau (var geekEquipe : arrayOfEquipe; numGeekemonEquipe : integer);
+procedure evolution (var geekEquipe : arrayOfEquipe; numGeekemonEquipe : integer);
+procedure experience (var geekEquipe : arrayOfEquipe; numGeekemonEquipe : integer);
+
+
+implementation
+uses changementSalle, Améliorations, scénario;
+//////////////////////////////////
+procedure combatGeekemonSauvage (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomdresseurs : arrayofdresseurs; equipestockage : arrayofpc; quitter : integer);
+
+  var
+    randomGeekemon1 : string; //Geekemon aléatoire du geekedex
+    numéroGeekemon : integer; //Le numéro du Geekemon de l'équipe du joueur qui correspond à son indice dans le tableau
+    choixSuiteCombat : integer;
+    nbGeekemonEquipeRestants : integer;
+    numGeekemonEquipe : integer; //Le numéro du Geekemon de l'équipe du joueur qui correspond à son indice dans le tableau
+    pvGeekemonSauvage : integer; //Les pv de base du geekemon sauvage, pour les restaurer dans le geekedex une fois qu'il est K.O.
+    nbGeekemondeBase : integer;
+    //Le nombre de Geekemons de l'équipe du joueur avant de commencer le combat.
+    //Il influe sur le déroulement des actions.
+
+begin
+    Randomize();
+    numéroGeekemon := Random(23);
+    //On prend un geekemon aléatoire du geekedex.
+    randomGeekemon1 := geekedex[numéroGeekemon].nom;
+    pvGeekemonSauvage := geekedex[numéroGeekemon].pv;
+    nbGeekemonDeBase := geekEquipe[0].nbGeekemons;
+    nbGeekemonEquipeRestants := geekEquipe[0].nbGeekemons;
+    //Premier cas : le joueur a déjà trois geekemons KO dans son équipe.
+    if geekEquipe[2].PVactuels <= 0 then
+    begin
+      numGeekemonEquipe := 3;
+      //Le troisième geekemon du joueur est tombé KO dans un combat précédent, il lui en reste donc un.
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 3;
+      writeln ('Un ', randomGeekemon1, ' sauvage apparaît !');
+      writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+      combat(geekedex, geekEquipe, nbPotion, DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+      //On lance le combat.
+      while nbGeekemonEquipeRestants <> 0 do
+      begin
+        if geekedex[numéroGeekemon].PV <= 0 then
+        begin
+          writeln ('Le geekemon adverse est K.O. !');
+          //Les pv du Geekemon sauvage sont réattribués dans le geekedex et on a la possibilité de la capturer.
+          experience (geekEquipe, numGeekemonEquipe);
+          niveau(geekEquipe, numGeekemonEquipe);
+          geekedex[numéroGeekemon].PV := pvGeekemonSauvage;
+          capture (geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numéroGeekemon, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+          changementdeSalle(geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end
+        else
+        begin
+        writeln ('Vous n''avez plus de geekemons en forme ! Vous allez être renvoyé à l''ETDDG.');
+        //L'équipe du joueur est soignée en cas de défaite.
+        readln;
+        effacerEcran;
+        soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end;
+      end;
+    end
+    //Second cas : le joueur a déjà deux geekemons KO dans son équipe
+    else if geekEquipe[1].PVactuels <= 0 then
+    begin
+      numGeekemonEquipe := 2;
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 2;
+      writeln ('Un ', randomGeekemon1, ' sauvage apparaît !');
+      writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+      combat(geekedex, geekEquipe, nbPotion, DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+      while nbGeekemonEquipeRestants <> 0 do
+      //Tant que le joueur a des geekemons en forme dans son équipe, il envoie le suivant.
+      begin
+        if geekedex[numéroGeekemon].PV <= 0 then
+        begin
+          writeln ('Le geekemon adverse est K.O. !');
+          experience (geekEquipe, numGeekemonEquipe);
+          niveau(geekEquipe, numGeekemonEquipe);
+          geekedex[numéroGeekemon].PV := pvGeekemonSauvage;
+          capture (geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numéroGeekemon, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+          changementdeSalle(geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end
+        else
+        begin
+          case nbGeekemonEquipeRestants of
+          1 : Begin
+          writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+          writeln ('1 - envoyer un autre Geekemon');
+          writeln ('2 - fuir');
+          readln;
+          effacerEcran;
+          choixSuiteCombat := readVerif(1,2);
+          if choixSuiteCombat = 1 then
+          begin
+          numGeekemonEquipe := 3;
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+          combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+          end
+          else
+          begin
+          writeln ('Vous avez fuit !');
+          readln;
+          effacerEcran;
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+          end;
+          End;
+          0 : begin
+          writeln ('Vous n''avez plus de geekemons en forme ! Vous allez être renvoyé à l''ETTDG.');
+          readln;
+          effacerEcran;
+          soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+          end;
+          end;
+        end;
+    end;
+    end
+    //Troisième cas : le joueur a déjà un geekemon KO dans son équipe
+    else if geekEquipe[0].PVactuels <= 0 then
+      begin
+      numGeekemonEquipe := 1;
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+      writeln ('Un ', randomGeekemon1, ' sauvage apparaît !');
+      writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+      combat(geekedex, geekEquipe, nbPotion, DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+      while nbGeekemonEquipeRestants <> 0 do
+      begin
+        if geekedex[numéroGeekemon].PV <= 0 then
+        begin
+          writeln ('Le geekemon adverse est K.O. !');
+          readln;
+          effacerEcran;
+          experience (geekEquipe, numGeekemonEquipe);
+          niveau(geekEquipe, numGeekemonEquipe);
+          geekedex[numéroGeekemon].PV := pvGeekemonSauvage;
+          capture (geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numéroGeekemon, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+          changementdeSalle(geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end
+        else
+        begin
+          case nbGeekemonEquipeRestants of
+          2 : begin
+          writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+          writeln ('1 - envoyer un autre Geekemon');
+          writeln ('2 - fuir');
+          choixSuiteCombat := readVerif(1,2);
+          effacerEcran;
+            if choixSuiteCombat = 1 then
+            begin
+            numGeekemonEquipe := 2;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+            combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+            end
+            else
+            begin
+            writeln ('Vous avez fuit !');
+            readln;
+            effacerEcran;
+            changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+            end;
+          end;
+          1 : Begin
+          //En fonction du nombre de geekemons que le joueur avait à la base,
+          //s'il lui en reste un, on envoie un geekemon à un indice du tableau
+          //geekEquipe différent.
+          case nbGeekemondeBase of
+            4 : begin
+              writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+              writeln ('1 - envoyer un autre Geekemon');
+              writeln ('2 - fuir');
+              choixSuiteCombat := readVerif(1,2);
+              effacerEcran;
+              if choixSuiteCombat = 1 then
+              begin
+                numGeekemonEquipe := 3;
+                writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+                combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+              end
+              else
+              begin
+              writeln ('Vous avez fuit !');
+              readln;
+              effacerEcran;
+              changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+              end;
+            end;
+
+            3 : begin
+              writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+              writeln ('1 - envoyer un autre Geekemon');
+              writeln ('2 - fuir');
+              choixSuiteCombat := readVerif(1,2);
+              effacerEcran;
+              if choixSuiteCombat = 1 then
+              begin
+                numGeekemonEquipe := 3;
+                writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+                combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+              end
+              else
+              begin
+              writeln ('Vous avez fuit !');
+              readln;
+              effacerEcran;
+              changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+              end;
+            end;
+          end;
+          end;
+          0 : begin
+          writeln ('Vous n''avez plus de geekemons en forme ! Vous allez être renvoyé à l''ETDDG.');
+          readln;
+          effacerEcran;
+          soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+          end;
+          end;
+        end;
+    end;
+    end
+    //Dernier cas : le joueur n'a pas de geekemon KO dans son équipe
+    else
+    begin
+    numGeekemonEquipe := 0;
+    writeln ('Un ', randomGeekemon1, ' sauvage apparaît !');
+    writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+    combat(geekedex, geekEquipe, nbPotion, DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+    while nbGeekemonEquipeRestants <> 0 do
+    begin
+    if geekedex[numéroGeekemon].PV <= 0 then
+    begin
+      writeln ('Le geekemon adverse est K.O. !');
+      readln;
+      effacerEcran;
+      experience (geekEquipe, numGeekemonEquipe);
+      niveau(geekEquipe, numGeekemonEquipe);
+      geekedex[numéroGeekemon].PV := pvGeekemonSauvage;
+      capture (geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numéroGeekemon, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+      changementdeSalle(geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+    end
+    else
+    begin
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+      case nbGeekemonEquipeRestants of
+        3 : Begin
+        writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+        writeln ('1 - envoyer un autre Geekemon');
+        writeln ('2 - fuir');
+        choixSuiteCombat := readVerif(1,2);
+        effacerEcran;
+        if choixSuiteCombat = 1 then
+        begin
+          numGeekemonEquipe := 1;
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+          combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+        end
+        else
+        begin
+          writeln ('Vous avez fuit !');
+          readln;
+          effacerEcran;
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end;
+        End;
+
+      2 : Begin
+        case nbGeekemondeBase of
+        4 : begin
+        writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+        writeln ('1 - envoyer un autre Geekemon');
+        writeln ('2 - fuir');
+        choixSuiteCombat := readVerif(1,2);
+        effacerEcran;
+        if choixSuiteCombat = 1 then
+        begin
+          numGeekemonEquipe := 2;
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+          combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+        end
+        else
+        begin
+          writeln ('Vous avez fuit !');
+          readln;
+          effacerEcran;
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end;
+        end;
+        3 : begin
+        writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+        writeln ('1 - envoyer un autre Geekemon');
+        writeln ('2 - fuir');
+        choixSuiteCombat := readVerif(1,2);
+        effacerEcran;
+        if choixSuiteCombat = 1 then
+        begin
+          numGeekemonEquipe := 1;
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+          combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe,nom1, avancement);
+        end
+        else
+        begin
+          writeln ('Vous avez fuit !');
+          readln;
+          effacerEcran;
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe,nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end;
+        end;
+        end;
+        End;
+
+      1 : Begin
+        case nbGeekemondeBase of
+        4 : begin
+        writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+        writeln ('1 - envoyer un autre Geekemon');
+        writeln ('2 - fuir');
+        choixSuiteCombat := readVerif(1,2);
+        effacerEcran;
+        if choixSuiteCombat = 1 then
+        begin
+          numGeekemonEquipe := 3;
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+          combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+        end
+        else
+        begin
+          writeln ('Vous avez fuit !');
+          readln;
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end;
+        end;
+        3 : begin
+        writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+        writeln ('1 - envoyer un autre Geekemon');
+        writeln ('2 - fuir');
+        choixSuiteCombat := readVerif(1,2);
+        effacerEcran;
+        if choixSuiteCombat = 1 then
+        begin
+          numGeekemonEquipe := 2;
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+          combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+        end
+        else
+        begin
+          writeln ('Vous avez fuit !');
+          readln;
+          effacerEcran;
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end;
+        end;
+        2 : begin
+        writeln ('Votre geekemon est K.O. ! Souhaitez vous envoyer un autre geekemon' +
+               'ou fuir ?');
+        writeln ('1 - envoyer un autre Geekemon');
+        writeln ('2 - fuir');
+        choixSuiteCombat := readVerif(1,2);
+        effacerEcran;
+        if choixSuiteCombat = 1 then
+        begin
+          numGeekemonEquipe := 1;
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer !');
+          combat(geekedex, geekEquipe, nbPotion,DressEquipe, numéroGeekemon, numGeekemonEquipe, nom1, avancement);
+        end
+        else
+        begin
+          writeln ('Vous avez fuit !');
+          readln;
+          effacerEcran;
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        end;
+        end;
+        End;
+      End;
+      0 : Begin
+          writeln ('Vous n''avez plus de geekemons en forme ! Vous allez être renvoyé à l''ETTDG.');
+          readln;
+          effacerEcran;
+          soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+          changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe,nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+    end;
+  end;
+  end;
+  end;
+  end;
+
+
+//////////////////////////////////////
+procedure combat (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; numéroGeekemon : integer;
+                  var numGeekemonEquipe : integer; nom1 :string ; var avancement : avancementQuete);
+
+  var
+    degatsInfligés : integer;
+    degatsReçus : integer;
+    choixAction : integer;
+
+
+  begin
+  //Le code correspond à un round de combat. On sort de la boucle quand un des deux geekemons
+  // a ses pvs inférieurs ou égaux à 0.
+    repeat
+      if (geekEquipe[numGeekemonEquipe].accesCompetence3 = False) then
+      // Si le booléen accesCompetence3 est à faux, alors le geekemon
+      //ne peut utiliser que deux compétences.
+      begin
+
+        writeln ('Que souhaitez- vous faire ?');
+
+        writeln ('1 - Utiliser la premiere compétence ' ,geekEquipe[numGeekemonEquipe].nomComp1);
+
+        writeln ('2 - Utiliser la deuxieme compétence ' ,geekEquipe[numGeekemonEquipe].nomComp2);
+
+        writeln ('3 - Utiliser une potion');
+
+        choixAction := readVerif(1,3);
+        effacerEcran;
+        if choixAction = 1 then
+        //On met en relation la valeur de la compétence et la défense pour calculer les dégâts.
+        //Si les pv du geekemon attaquant sont inférieurs à 0, il passe son tour.
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP1 - geekedex[numéroGeekemon].DEF;
+          degatsReçus := geekedex[numéroGeekemon].COMP1 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if choixAction = 2 then
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP2 - geekedex[numéroGeekemon].DEF;
+          degatsReçus := geekedex[numéroGeekemon].COMP2 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if ((choixAction = 1) or (choixAction = 2)) then
+        begin
+          if geekEquipe[numGeekemonEquipe].PVactuels > 0 then
+          begin
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' attaque ! Cela inflige ',degatsInfligés, ' dégâts.');
+          geekedex[numéroGeekemon].PV := geekedex[numéroGeekemon].PV - degatsInfligés;
+          end;
+          if geekedex[numéroGeekemon].PV > 0 then
+          begin
+            writeln (geekedex[numéroGeekemon].nom, ' attaque ! Cela inflige ',degatsReçus, ' dégâts.');
+            geekEquipe[numGeekemonEquipe].PVactuels := geekEquipe[numGeekemonEquipe].PVactuels - degatsReçus;
+          end;
+          end
+        else
+        begin
+          if nbPotion = 0 then
+          begin
+            writeln ('Vous n''avez plus de potions dans votre sac !');
+            readln;
+            effacerEcran;
+          end
+          else
+          begin
+          geekEquipe[numGeekemonEquipe].PVactuels := geekEquipe[numGeekemonEquipe].PVactuels + 5;
+          writeln ('Félicitations ! Votre geekemon a restauré 5 points de vie.');
+          readln;
+          effacerEcran;
+          nbPotion := nbPotion - 1;
+          end;
+        end;
+      end
+      else
+      begin
+        writeln ('Que souhaitez- vous faire ?');
+        writeln ('1 - Utiliser la première compétence ' ,geekEquipe[numGeekemonEquipe].nomComp1);
+        writeln ('2 - Utiliser la deuxième compétence ' ,geekEquipe[numGeekemonEquipe].nomComp2);
+        writeln ('3 - Utiliser la troisième compétence ' ,geekEquipe[numGeekemonEquipe].nomComp3);
+        writeln ('4 - Utiliser une potion');
+        choixAction := readVerif(1,4);
+        effacerEcran;
+        if choixAction = 1 then
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP1 - geekedex[numéroGeekemon].DEF;
+          degatsReçus := geekedex[numéroGeekemon].COMP1 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if choixAction = 2 then
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP2 - geekedex[numéroGeekemon].DEF;
+          degatsReçus := geekedex[numéroGeekemon].COMP2 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if choixAction = 3 then
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP3 - geekedex[numéroGeekemon].DEF;
+          degatsReçus := geekedex[numéroGeekemon].COMP3 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if ((choixAction = 1) or (choixAction = 2) or (choixAction = 3)) then
+        begin
+          if geekEquipe[numGeekemonEquipe].PVactuels > 0 then
+          begin
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' attaque ! Cela inflige ',
+          degatsInfligés, ' dégâts.');
+          geekedex[numéroGeekemon].PV := geekedex[numéroGeekemon].PV - degatsInfligés;
+          end;
+          if geekedex[numéroGeekemon].PV > 0 then
+          begin
+          writeln (geekedex[numéroGeekemon].nom, ' attaque ! Cela inflige ',degatsReçus, ' dégâts.');
+          geekEquipe[numGeekemonEquipe].PVactuels := geekEquipe[numGeekemonEquipe].PVactuels - degatsReçus;
+          end;
+          end
+        else
+        begin
+          if nbPotion = 0 then
+          begin
+            writeln ('Vous n''avez plus de potions dans votre sac !');
+            readln;
+            effacerEcran;
+          end
+          else
+          begin
+          geekEquipe[numGeekemonEquipe].PVactuels := geekEquipe[numGeekemonEquipe].PVactuels + 5;
+          writeln ('Félicitations ! Votre geekemon a restauré 5 points de vie.');
+          readln;
+          effacerEcran;
+          nbPotion := nbPotion - 1;
+          end;
+        end;
+      end
+
+  until (geekedex[numéroGeekemon].PV <= 0) or (geekEquipe[numGeekemonEquipe].PVactuels <= 0);
+  end;
+
+ /////////////////////////////
+procedure choixDresseur (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomDresseurs : arrayofdresseurs; equipeStockage : arrayofpc; quitter : integer);
+
+var
+  choixDresseur : integer;
+  numDressEquipe : integer;
+
+begin
+  writeln ('Veuillez rentrer le nom du dresseur que vous souhaitez affronter :');
+  writeln ('1 - Alexis le Bon');
+  writeln ('2 - Pierre le Truand');
+  writeln ('3 - David la Brute');
+  choixDresseur := readVerif(1,3);
+  effacerEcran;
+  //selon la valeur de choixDresseur, on appelle le combatDresseur avec une valeur
+  //de numDressEquipe différente, ce qui provoquera un combat contre un dresseur
+  //précis avec une équipe précise
+  case choixDresseur of
+  1 : begin
+        numDressEquipe := 0;
+        combatDresseur (geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, numDressEquipe, equipeStockage, quitter);
+      end;
+  2 : begin
+        numDressEquipe := 4;
+        combatDresseur (geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, numDressEquipe, equipeStockage, quitter);
+      end;
+  3 : begin
+        numDressEquipe := 8;
+        combatDresseur (geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, numDressEquipe, equipeStockage, quitter);
+      end;
+  end;
+
+end;
+
+/////////////////////////////
+procedure combatVsGeekDresseur (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var numGeekemonEquipe : integer; var numDressEquipe : integer);
+
+var
+  degatsInfligés : integer;
+  degatsReçus : integer;
+  choixAction : integer;
+
+begin
+  repeat
+        //Le combat contre le geekemon d'un dresseur est similaire au combat contre un geekemon sauvage,
+        //sauf qu'on utilise
+        //les données du tableau DressEquipe au lieu d'utiliser celles du geekedex.
+        if (geekEquipe[numGeekemonEquipe].accesCompetence3 = False) then
+      begin
+        writeln ('Que souhaitez- vous faire ?');
+        writeln ('1 - Utiliser la premiere compétence ' ,geekEquipe[numGeekemonEquipe].nomComp1);
+        writeln ('2 - Utiliser la deuxieme compétence ' ,geekEquipe[numGeekemonEquipe].nomComp2);
+        writeln ('3 - Utiliser une potion');
+        choixAction := readVerif(1,3);
+        effacerEcran;
+        if choixAction = 1 then
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP1 - dressEquipe[numDressEquipe].DEF;
+          degatsReçus := dressEquipe[numDressEquipe].COMP1 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if choixAction = 2 then
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP2 - dressEquipe[numDressEquipe].DEF;
+          degatsReçus := dressEquipe[numDressEquipe].COMP2 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if ((choixAction = 1) or (choixAction = 2)) then
+        begin
+          if geekEquipe[numGeekemonEquipe].PVactuels > 0 then
+          begin
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' attaque ! Cela inflige ',
+          degatsInfligés, ' dégâts.');
+          dressEquipe[numDressEquipe].PV := dressEquipe[numDressEquipe].PV - degatsInfligés;
+          end;
+          if dressEquipe[numDressEquipe].PV > 0 then
+          begin
+            writeln (dressEquipe[numDressEquipe].nom, ' attaque ! Cela inflige ',degatsReçus, ' dégâts.');
+            geekEquipe[numGeekemonEquipe].PVactuels := geekEquipe[numGeekemonEquipe].PVactuels - degatsReçus;
+          end;
+          end
+        else
+        begin
+          if nbPotion = 0 then
+          begin
+            writeln ('Vous n''avez plus de potions dans votre sac !');
+            readln;
+            effacerEcran;
+          end
+          else
+          begin
+          geekEquipe[numGeekemonEquipe].PVactuels := geekEquipe[numGeekemonEquipe].PVactuels + 5;
+          writeln ('Félicitations ! Votre geekemon a restauré 5 points de vie.');
+          readln;
+          effacerEcran;
+          nbPotion := nbPotion - 1;
+          end;
+        end;
+      end
+      else
+      begin
+        writeln ('Que souhaitez- vous faire ?');
+        writeln ('1 - Utiliser la première compétence ' ,geekEquipe[numGeekemonEquipe].nomComp1);
+        writeln ('2 - Utiliser la deuxième compétence ' ,geekEquipe[numGeekemonEquipe].nomComp2);
+        writeln ('3 - Utiliser la troisième compétence ' ,geekEquipe[numGeekemonEquipe].nomComp2);
+        writeln ('4 - Utiliser une potion');
+        choixAction := readVerif(1,4);
+        effacerEcran;
+        if choixAction = 1 then
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP1 - dressEquipe[numDressEquipe].DEF;
+          degatsReçus := dressEquipe[numDressEquipe].COMP1 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if choixAction = 2 then
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP2 - dressEquipe[numDressEquipe].DEF;
+          degatsReçus := dressEquipe[numDressEquipe].COMP2 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if choixAction = 3 then
+        begin
+          degatsInfligés := geekEquipe[numGeekemonEquipe].COMP3 - dressEquipe[numDressEquipe].DEF;
+          degatsReçus := dressEquipe[numDressEquipe].COMP3 - geekEquipe[numGeekemonEquipe].DEF;
+        end;
+        if ((choixAction = 1) or (choixAction = 2) or (choixAction = 3)) then
+        begin
+          if geekEquipe[numGeekemonEquipe].PVactuels > 0 then
+          begin
+          writeln (geekEquipe[numGeekemonEquipe].nom, ' attaque ! Cela inflige ',
+          degatsInfligés, ' dégâts.');
+          dressEquipe[numDressEquipe].PV := dressEquipe[numDressEquipe].PV - degatsInfligés;
+          end;
+          if dressEquipe[numDressEquipe].PV > 0 then
+          begin
+            writeln (dressEquipe[numDressEquipe].nom, ' attaque ! Cela inflige ',degatsReçus, ' dégâts.');
+            geekEquipe[numGeekemonEquipe].PVactuels := geekEquipe[numGeekemonEquipe].PVactuels - degatsReçus;
+          end;
+          end
+        else
+        begin
+          if nbPotion = 0 then
+          begin
+            writeln ('Vous n''avez plus de potions dans votre sac !');
+            readln;
+            effacerEcran;
+          end
+          else
+          begin
+          geekEquipe[numGeekemonEquipe].PVactuels := geekEquipe[numGeekemonEquipe].PVactuels + 5;
+          writeln ('Félicitations ! Votre geekemon a restauré 5 points de vie.');
+          readln;
+          effacerEcran;
+          nbPotion := nbPotion - 1;
+          end;
+        end;
+      end
+
+  until (dressEquipe[numDressEquipe].PV <= 0) or (geekEquipe[numGeekemonEquipe].PVactuels <= 0);
+end;
+/////////////////////
+procedure capture (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var numGeekemonEquipe : integer; var numéroGeekemon : integer ; var nom1 : string; var avancement : avancementQuete; nomdresseurs : arrayofdresseurs; equipeStockage : arrayofpc; quitter : integer);
+
+var
+  choixCapture : integer;
+  choixRemplacement : integer;
+
+begin
+  writeln ('Le ', geekedex[numéroGeekemon].nom, ' est affaibli ! Souhaitez vous le capturer ?');
+  writeln ('1 - Oui');
+  writeln ('2 - Non');
+  choixCapture := readVerif(1,2);
+  effacerEcran;
+  if choixCapture = 1 then
+  begin
+  //Si le joueur a déjà 4 geekemons dans son équipe, il peut choisir lequel il souhaite remplacer.
+  case geekEquipe[0].nbGeekemons of
+  4 :  begin
+  writeln ('Félicitations ! Vous avez capturé un ', geekedex[numéroGeekemon].nom,
+  '. Quel geekemon de votre équipe souhaitez vous remplacer ?');
+  writeln ('1 -', geekEquipe[0].nom);
+  writeln ('2 -', geekEquipe[1].nom);
+  writeln ('3 -', geekEquipe[2].nom);
+  writeln ('4 -', geekEquipe[3].nom);
+  choixRemplacement := readVerif(1,4);
+  effacerEcran;
+      case choixRemplacement of
+        //La case du tableau geekEquipe correspondant au choix du joueur
+        //prend les caractéristiques du geekemon sauvage présentes dans le geekedex.
+        1 : Begin
+        writeln ('Byebye ', geekEquipe[0].nom, ' !');
+        readln;
+        effacerEcran;
+        geekEquipe[0].nom := geekedex[numéroGeekemon].nom;
+        geekEquipe[0].COMP1 := geekedex[numéroGeekemon].COMP1;
+        geekEquipe[0].COMP2 := geekedex[numéroGeekemon].COMP2;
+        geekEquipe[0].COMP3 := geekedex[numéroGeekemon].COMP3;
+        geekEquipe[0].nomComp1 := geekedex[numéroGeekemon].nomComp1;
+        geekEquipe[0].nomComp2 := geekedex[numéroGeekemon].nomComp2;
+        geekEquipe[0].nomComp3 := geekedex[numéroGeekemon].nomComp3;
+        geekEquipe[0].accesCompetence3 := false;
+        geekEquipe[0].DEF := geekedex[numéroGeekemon].DEF;
+        geekEquipe[0].PVdeBase := geekedex[numéroGeekemon].PV;
+        geekEquipe[0].PVactuels := geekedex[numéroGeekemon].PV;
+        geekEquipe[0].EXP :=0;
+        geekEquipe[0].NIV :=1;
+        End;
+        2 : begin
+        writeln ('Byebye', geekEquipe[1].nom, '!');
+        readln;
+        effacerEcran;
+        geekEquipe[1].nom := geekedex[numéroGeekemon].nom;
+        geekEquipe[1].COMP1 := geekedex[numéroGeekemon].COMP1;
+        geekEquipe[1].COMP2 := geekedex[numéroGeekemon].COMP2;
+        geekEquipe[1].COMP3 := geekedex[numéroGeekemon].COMP3;
+        geekEquipe[1].nomComp1 := geekedex[numéroGeekemon].nomComp1;
+        geekEquipe[1].nomComp2 := geekedex[numéroGeekemon].nomComp2;
+        geekEquipe[1].nomComp3 := geekedex[numéroGeekemon].nomComp3;
+        geekEquipe[1].accesCompetence3 := false;
+        geekEquipe[1].DEF := geekedex[numéroGeekemon].DEF;
+        geekEquipe[1].PVdeBase := geekedex[numéroGeekemon].PV;
+        geekEquipe[1].PVactuels := geekedex[numéroGeekemon].PV;
+        geekEquipe[1].EXP :=0;
+        geekEquipe[1].NIV :=1;
+        end;
+        3 : begin
+        writeln ('Byebye', geekEquipe[2].nom, '!');
+        readln;
+        effacerEcran;
+        geekEquipe[2].nom := geekedex[numéroGeekemon].nom;
+        geekEquipe[2].COMP1 := geekedex[numéroGeekemon].COMP1;
+        geekEquipe[2].COMP2 := geekedex[numéroGeekemon].COMP2;
+        geekEquipe[2].COMP3 := geekedex[numéroGeekemon].COMP3;
+        geekEquipe[2].nomComp1 := geekedex[numéroGeekemon].nomComp1;
+        geekEquipe[2].nomComp2 := geekedex[numéroGeekemon].nomComp2;
+        geekEquipe[2].nomComp3 := geekedex[numéroGeekemon].nomComp3;
+        geekEquipe[2].accesCompetence3 := false;
+        geekEquipe[2].DEF := geekedex[numéroGeekemon].DEF;
+        geekEquipe[2].PVdeBase := geekedex[numéroGeekemon].PV;
+        geekEquipe[2].PVactuels := geekedex[numéroGeekemon].PV;
+        geekEquipe[2].EXP :=0;
+        geekEquipe[2].NIV :=1;
+        end;
+        4 : begin
+        writeln ('Byebye', geekEquipe[3].nom, '!');
+        readln;
+        effacerEcran;
+        geekEquipe[3].nom := geekedex[numéroGeekemon].nom;
+        geekEquipe[3].COMP1 := geekedex[numéroGeekemon].COMP1;
+        geekEquipe[3].COMP2 := geekedex[numéroGeekemon].COMP2;
+        geekEquipe[3].COMP3 := geekedex[numéroGeekemon].COMP3;
+        geekEquipe[3].nomComp1 := geekedex[numéroGeekemon].nomComp1;
+        geekEquipe[3].nomComp2 := geekedex[numéroGeekemon].nomComp2;
+        geekEquipe[3].nomComp3 := geekedex[numéroGeekemon].nomComp3;
+        geekEquipe[3].accesCompetence3 := false;
+        geekEquipe[3].DEF := geekedex[numéroGeekemon].DEF;
+        geekEquipe[3].PVdeBase := geekedex[numéroGeekemon].PV;
+        geekEquipe[3].PVactuels := geekedex[numéroGeekemon].PV;
+        geekEquipe[3].EXP :=0;
+        geekEquipe[3].NIV :=1;
+        end;
+    end;
+  changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+  end;
+  //Si l'équipe du joueur n'est pas complète, les caractéristiques du nouveau geekemon
+  //sont écrites dans la case libre suivante du tableau geekEquipe.
+  3 : begin
+    writeln ('Félicitations ! Vous avez capturé un ', geekedex[numéroGeekemon].nom,'.');
+    readln;
+    effacerEcran;
+    geekEquipe[3].nom := geekedex[numéroGeekemon].nom;
+    geekEquipe[3].COMP1 := geekedex[numéroGeekemon].COMP1;
+    geekEquipe[3].COMP2 := geekedex[numéroGeekemon].COMP2;
+    geekEquipe[3].COMP3 := geekedex[numéroGeekemon].COMP3;
+    geekEquipe[3].nomComp1 := geekedex[numéroGeekemon].nomComp1;
+    geekEquipe[3].nomComp2 := geekedex[numéroGeekemon].nomComp2;
+    geekEquipe[3].nomComp3 := geekedex[numéroGeekemon].nomComp3;
+    geekEquipe[2].accesCompetence3 := false;
+    geekEquipe[3].DEF := geekedex[numéroGeekemon].DEF;
+    geekEquipe[3].PVdeBase := geekedex[numéroGeekemon].PV;
+    geekEquipe[3].PVactuels := geekedex[numéroGeekemon].PV;
+    geekEquipe[0].nbGeekemons := 4;
+    readln;
+    effacerEcran;
+    changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+    end;
+  2: begin
+    writeln ('Félicitations ! Vous avez capturé un ', geekedex[numéroGeekemon].nom,'.');
+    readln;
+    effacerEcran;
+    geekEquipe[2].nom := geekedex[numéroGeekemon].nom;
+    geekEquipe[2].COMP1 := geekedex[numéroGeekemon].COMP1;
+    geekEquipe[2].COMP2 := geekedex[numéroGeekemon].COMP2;
+    geekEquipe[2].COMP3 := geekedex[numéroGeekemon].COMP3;
+    geekEquipe[2].nomComp1 := geekedex[numéroGeekemon].nomComp1;
+    geekEquipe[2].nomComp2 := geekedex[numéroGeekemon].nomComp2;
+    geekEquipe[2].nomComp3 := geekedex[numéroGeekemon].nomComp3;
+    geekEquipe[2].accesCompetence3 := false;
+    geekEquipe[2].DEF := geekedex[numéroGeekemon].DEF;
+    geekEquipe[2].PVdeBase := geekedex[numéroGeekemon].PV;
+    geekEquipe[2].PVactuels := geekedex[numéroGeekemon].PV;
+    geekEquipe[0].nbGeekemons := 3;
+    readln;
+    effacerEcran;
+    changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+    end;
+  1: begin
+    writeln ('Félicitations ! Vous avez capturé un ', geekedex[numéroGeekemon].nom,'.');
+    readln;
+    effacerEcran;
+    geekEquipe[1].nom := geekedex[numéroGeekemon].nom;
+    geekEquipe[1].COMP1 := geekedex[numéroGeekemon].COMP1;
+    geekEquipe[1].COMP2 := geekedex[numéroGeekemon].COMP2;
+    geekEquipe[1].COMP3 := geekedex[numéroGeekemon].COMP3;
+    geekEquipe[1].nomComp1 := geekedex[numéroGeekemon].nomComp1;
+    geekEquipe[1].nomComp2 := geekedex[numéroGeekemon].nomComp2;
+    geekEquipe[1].nomComp3 := geekedex[numéroGeekemon].nomComp3;
+    geekEquipe[1].accesCompetence3 := false;
+    geekEquipe[1].DEF := geekedex[numéroGeekemon].DEF;
+    geekEquipe[1].PVdeBase := geekedex[numéroGeekemon].PV;
+    geekEquipe[1].PVactuels := geekedex[numéroGeekemon].PV;
+    geekEquipe[0].nbGeekemons := 2;
+    changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+    end;
+  end;
+  end;
+end;
+
+//////////////////////
+procedure combatDresseur (var geekedex : arrayOfGeekemon; var geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomDresseurs : arrayofdresseurs; numDressEquipe : integer; equipeStockage : arrayofpc; quitter : integer);
+
+var
+  nbGeekemonEquipeRestants : integer;
+  nbGeekemonDeBase : integer;
+  nbGeekemonEquipeAdverse : integer; //Nombre de geekemons du joueur adverse
+  pvGeekemonAdverse : integer;
+  numGeekemonEquipe : integer;
+
+begin
+  writeln ('Le dresseur ', nomDresseurs[numDressEquipe], ' souhaite se battre !');
+  readln;
+  effacerEcran;
+  numGeekemonEquipe := 0;
+  nbGeekemonDeBase := geekEquipe[0].nbGeekemons;
+  nbGeekemonEquipeRestants := geekEquipe[0].nbGeekemons;
+  nbGeekemonEquipeAdverse := 4;
+  if geekEquipe[2].PVactuels <= 0 then
+  begin
+  numGeekemonEquipe := 3;
+  nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 3;
+  writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+  writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+  readln;
+  effacerEcran;
+  pvGeekemonAdverse := dressEquipe[numDressEquipe].pv;
+  combatVsGeekDresseur (geekedex, geekEquipe, nbPotion,DressEquipe, numGeekemonEquipe, numDressEquipe);
+  while (nbGeekemonEquipeRestants or nbGeekemonEquipeAdverse) <> 0  do
+  begin
+    if dressEquipe[numDressEquipe].PV <= 0 then
+    begin
+      dressEquipe[numDressEquipe].PV := pvGeekemonAdverse;
+      //La procédure est similaire au combatGeekemonSauvage sauf que le joueur envoie le geekemon suivant de son équipe.
+      nbGeekemonEquipeAdverse := nbGeekemonEquipeAdverse - 1;
+      case nbGeekemonEquipeAdverse of
+      3 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            //Si le geekemon adverse est K.O., on appelle la procédure
+            //expérience et la procédure niveau d'affilée pour tester
+            //le niveau d'expérience du geekemon vainqueur.
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+      0 : Begin
+        writeln (nomDresseurs[numDressEquipe], 'n'' plus de geekemons en forme ! Vous avez gagné !');
+        readln;
+        effacerEcran;
+        experience (geekEquipe, numGeekemonEquipe);
+        niveau(geekEquipe, numGeekemonEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+      end;
+    end
+    else
+    begin
+    writeln ('Vous n''avez plus de geekemons en forme ! Vous avez perdu ! Vous allez être renvoyé à l''ETTDG.');
+    readln;
+    effacerEcran;
+    soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+    changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+    End;
+  end;
+  end
+  else if geekEquipe[1].PVactuels <= 0 then
+  begin
+  numGeekemonEquipe := 2;
+  nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 2;
+  writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+  writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+  readln;
+  effacerEcran;
+  pvGeekemonAdverse := dressEquipe[numDressEquipe].pv;
+  combatVsGeekDresseur (geekedex, geekEquipe, nbPotion,DressEquipe, numGeekemonEquipe, numDressEquipe);
+  while (nbGeekemonEquipeRestants or nbGeekemonEquipeAdverse) <> 0  do
+  begin
+    if dressEquipe[numDressEquipe].PV <= 0 then
+    begin
+      dressEquipe[numDressEquipe].PV := pvGeekemonAdverse;
+      nbGeekemonEquipeAdverse := nbGeekemonEquipeAdverse - 1;
+      case nbGeekemonEquipeAdverse of
+      3 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+      0 : Begin
+        writeln (nomDresseurs[numDressEquipe], 'n'' plus de geekemons en forme ! Vous avez gagné !');
+        readln;
+        effacerEcran;
+        experience (geekEquipe, numGeekemonEquipe);
+        niveau(geekEquipe, numGeekemonEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+    end;
+    end;
+    if geekEquipe[numGeekemonEquipe].PVactuels <= 0 then
+    begin
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+      case nbGeekemonEquipeRestants of
+      1 : Begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 3;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      0 : Begin
+        writeln ('Vous n''avez plus de geekemons en forme ! Vous avez perdu ! Vous allez être renvoyé à l''ETTDG.');
+        readln;
+        effacerEcran;
+        soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+    end;
+    end;
+  end;
+  end
+  else if geekEquipe[0].pvactuels <= 0 then
+  begin
+  numGeekemonEquipe := 1;
+  nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+  writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+  writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+  readln;
+  effacerEcran;
+  pvGeekemonAdverse := dressEquipe[numDressEquipe].pv;
+  combatVsGeekDresseur (geekedex, geekEquipe, nbPotion,DressEquipe, numGeekemonEquipe, numDressEquipe);
+  while (nbGeekemonEquipeRestants or nbGeekemonEquipeAdverse) <> 0  do
+  begin
+    if dressEquipe[numDressEquipe].PV <= 0 then
+    begin
+      dressEquipe[numDressEquipe].PV := pvGeekemonAdverse;
+      nbGeekemonEquipeAdverse := nbGeekemonEquipeAdverse - 1;
+      case nbGeekemonEquipeAdverse of
+      3 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+      0 : Begin
+        writeln (nomDresseurs[numDressEquipe], 'n'' plus de geekemons en forme ! Vous avez gagné !');
+        readln;
+        effacerEcran;
+        experience (geekEquipe, numGeekemonEquipe);
+        niveau(geekEquipe, numGeekemonEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+    end;
+    end;
+    if geekEquipe[numGeekemonEquipe].PVactuels <= 0 then
+    begin
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+      case nbGeekemonEquipeRestants of
+      2 : Begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 2;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            case nbGeekemondeBase of
+            4 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 3;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+            3 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 2;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            end;
+            end;
+          End;
+      0 : Begin
+        writeln ('Vous n''avez plus de geekemons en forme ! Vous avez perdu ! Vous allez être renvoyé à l''ETTDG.');
+        readln;
+        effacerEcran;
+        soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+      end;
+    end;
+    end;
+  end
+  else
+  begin
+  writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+  writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+  readln;
+  effacerEcran;
+  pvGeekemonAdverse := dressEquipe[numDressEquipe].pv;
+  combatVsGeekDresseur (geekedex, geekEquipe, nbPotion,DressEquipe, numGeekemonEquipe, numDressEquipe);
+  while (nbGeekemonEquipeRestants or nbGeekemonEquipeAdverse) <> 0  do
+  begin
+    if dressEquipe[numDressEquipe].PV <= 0 then
+    begin
+      dressEquipe[numDressEquipe].PV := pvGeekemonAdverse;
+      nbGeekemonEquipeAdverse := nbGeekemonEquipeAdverse - 1;
+      case nbGeekemonEquipeAdverse of
+      3 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+      0 : Begin
+        writeln (nomDresseurs[numDressEquipe], 'n'' plus de geekemons en forme ! Vous avez gagné !');
+        readln;
+        effacerEcran;
+        experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+    end;
+    end;
+    if geekEquipe[numGeekemonEquipe].PVactuels <= 0 then
+    begin
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+      case nbGeekemonEquipeRestants of
+        3 : Begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 1;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            case nbGeekemondeBase of
+            4 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 2;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+            3 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 1;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            end;
+            end;
+            End;
+
+      1 : Begin
+            case nbGeekemondeBase of
+            4 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 3;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+            3 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 2;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            end;
+            2 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 1;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            end;
+            end;
+            End;
+      0 : Begin
+        writeln ('Vous n''avez plus de geekemons en forme ! Vous avez perdu ! Vous allez être renvoyé à l''ETTDG.');
+        readln;
+        effacerEcran;
+        soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+    end;
+    end;
+  end;
+  end;
+
+end;
+
+
+
+///////////////////////////////
+procedure choixBoss (var geekedex : arrayOfGeekemon;var  geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomdresseurs : arrayofdresseurs; numéroBoss : integer; equipeStockage : arrayofpc; quitter : integer);
+
+var
+  numDressEquipe : integer;
+
+begin
+  case numéroBoss of
+  //selon la valeur de numéroBoss (variable présente dans la procédure quête), on appelle le combatDresseur avec une valeur
+  //de numDressEquipe différente, ce qui provoquera un combat contre un boss
+  //précis avec une équipe précise
+  1 : begin
+        numDressEquipe := 12;
+        combatBoss (geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, numDressEquipe, equipeStockage, quitter);
+      end;
+  2 : begin
+        numDressEquipe := 16;
+        combatBoss (geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, numDressEquipe, equipeStockage, quitter);
+      end;
+  3 : begin
+        numDressEquipe := 20;
+        combatBoss (geekedex, geekEquipe, nbPotion, DressEquipe, nom1, avancement, nomDresseurs, numDressEquipe, equipeStockage, quitter);
+      end;
+  end;
+
+end;
+/////////////////////////////
+procedure combatBoss(var geekedex : arrayOfGeekemon;var  geekEquipe : arrayOfEquipe; var nbPotion : integer; var DressEquipe : arrayOfEquipeDresseur; var nom1 : string; var avancement : avancementQuete; nomdresseurs : arrayofdresseurs; var numDressEquipe : integer; equipeStockage: arrayofpc; quitter : integer);
+
+var
+  numGeekemonEquipe : integer;
+  nbGeekemonEquipeRestants : integer;
+  nbGeekemonEquipeAdverse : integer;
+  pvGeekemonAdverse : integer;
+  nbGeekemonDeBase : integer;
+  finCombat : boolean;
+
+begin
+  writeln (nomDresseurs[numDressEquipe], ' souhaite se battre !');
+  numGeekemonEquipe := 0;
+  nbGeekemonDeBase := geekEquipe[0].nbGeekemons;
+  nbGeekemonEquipeRestants := geekEquipe[0].nbGeekemons;
+  nbGeekemonEquipeAdverse := 4;
+  if geekEquipe[2].PVactuels <= 0 then
+  begin
+  numGeekemonEquipe := 3;
+  nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 3;
+  writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+  writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+  pvGeekemonAdverse := dressEquipe[numDressEquipe].pv;
+  combatVsGeekDresseur (geekedex, geekEquipe, nbPotion,DressEquipe, numGeekemonEquipe, numDressEquipe);
+  while ((nbGeekemonEquipeRestants <> 0) or (nbGeekemonEquipeAdverse <> 0)) and finCombat = false  do
+  begin
+    if dressEquipe[numDressEquipe].PV <= 0 then
+    begin
+      dressEquipe[numDressEquipe].PV := pvGeekemonAdverse;
+      nbGeekemonEquipeAdverse := nbGeekemonEquipeAdverse - 1;
+      case nbGeekemonEquipeAdverse of
+      3 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+      0 : Begin
+        writeln (nomDresseurs[numDressEquipe], 'n'' plus de geekemons en forme ! Vous avez gagné !');
+        readln;
+        effacerEcran;
+        experience (geekEquipe, numGeekemonEquipe);
+        niveau(geekEquipe, numGeekemonEquipe);
+        finCombat := true;
+        End;
+      end;
+    end
+    else
+    begin
+    writeln ('Vous n''avez plus de geekemons en forme ! Vous avez perdu ! Vous allez être renvoyé à l''ETTDG.');
+    readln;
+    effacerEcran;
+    soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+    changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+    End;
+  end;
+  end
+  else if geekEquipe[1].PVactuels <= 0 then
+  begin
+  numGeekemonEquipe := 2;
+  nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 2;
+  writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+  writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+  readln;
+  effacerEcran;
+  pvGeekemonAdverse := dressEquipe[numDressEquipe].pv;
+  combatVsGeekDresseur (geekedex, geekEquipe, nbPotion,DressEquipe, numGeekemonEquipe, numDressEquipe);
+  while ((nbGeekemonEquipeRestants <> 0) or (nbGeekemonEquipeAdverse <> 0)) and finCombat = false  do
+  begin
+    if dressEquipe[numDressEquipe].PV <= 0 then
+    begin
+      dressEquipe[numDressEquipe].PV := pvGeekemonAdverse;
+      nbGeekemonEquipeAdverse := nbGeekemonEquipeAdverse - 1;
+      case nbGeekemonEquipeAdverse of
+      3 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+      0 : Begin
+        writeln (nomDresseurs[numDressEquipe], ' n''a plus de geekemons en forme ! Vous avez gagné !');
+        readln;
+        effacerEcran;
+        finCombat := true;
+        End;
+    end;
+    end;
+    if geekEquipe[numGeekemonEquipe].PVactuels <= 0 then
+    begin
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+      case nbGeekemonEquipeRestants of
+      1 : Begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 3;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      0 : Begin
+        writeln ('Vous n''avez plus de geekemons en forme ! Vous avez perdu ! Vous allez être renvoyé à l''ETTDG.');
+        readln;
+        effacerEcran;
+        soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+    end;
+    end;
+  end;
+  end
+  else if geekEquipe[0].pvactuels <= 0 then
+  begin
+  numGeekemonEquipe := 1;
+  nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+  writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+  writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+  readln;
+  effacerEcran;
+  pvGeekemonAdverse := dressEquipe[numDressEquipe].pv;
+  combatVsGeekDresseur (geekedex, geekEquipe, nbPotion,DressEquipe, numGeekemonEquipe, numDressEquipe);
+  while ((nbGeekemonEquipeRestants <> 0) or (nbGeekemonEquipeAdverse <> 0)) and finCombat = false  do
+  begin
+    if dressEquipe[numDressEquipe].PV <= 0 then
+    begin
+      dressEquipe[numDressEquipe].PV := pvGeekemonAdverse;
+      nbGeekemonEquipeAdverse := nbGeekemonEquipeAdverse - 1;
+      case nbGeekemonEquipeAdverse of
+      3 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+      0 : Begin
+        writeln (nomDresseurs[numDressEquipe], ' n''a plus de geekemons en forme ! Vous avez gagné !');
+        readln;
+        effacerEcran;
+        finCombat := true;
+        End;
+    end;
+    end;
+    if geekEquipe[numGeekemonEquipe].PVactuels <= 0 then
+    begin
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+      case nbGeekemonEquipeRestants of
+      2 : Begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 2;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            case nbGeekemondeBase of
+            4 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 3;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+            3 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 2;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            end;
+            end;
+          End;
+      0 : Begin
+        writeln ('Vous n''avez plus de geekemons en forme ! Vous avez perdu ! Vous allez être renvoyé à l''ETTDG.');
+        readln;
+        effacerEcran;
+        soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage, quitter);
+        End;
+      end;
+    end;
+    end;
+  end
+  else
+  begin
+  writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+  writeln (geekEquipe[numGeekemonEquipe].nom, ', go !');
+  readln;
+  effacerEcran;
+  pvGeekemonAdverse := dressEquipe[numDressEquipe].pv;
+  combatVsGeekDresseur (geekedex, geekEquipe, nbPotion,DressEquipe, numGeekemonEquipe, numDressEquipe);
+  while ((nbGeekemonEquipeRestants <> 0) or (nbGeekemonEquipeAdverse <> 0)) and finCombat = false  do
+  begin
+    if dressEquipe[numDressEquipe].PV <= 0 then
+    begin
+      dressEquipe[numDressEquipe].PV := pvGeekemonAdverse;
+      nbGeekemonEquipeAdverse := nbGeekemonEquipeAdverse - 1;
+      case nbGeekemonEquipeAdverse of
+      3 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      1 : Begin
+            writeln ('Le geekemon adverse est K.O. !');
+            experience (geekEquipe, numGeekemonEquipe);
+            niveau(geekEquipe, numGeekemonEquipe);
+            numDressEquipe := numDressEquipe + 1;
+            pvGeekemonAdverse := dressEquipe[numDressEquipe].PV;
+            writeln (nomDresseurs[numDressEquipe], ' envoie un ', dressEquipe[numDressEquipe].nom, ' ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+      0 : Begin
+        writeln (nomDresseurs[numDressEquipe], 'n'' plus de geekemons en forme ! Vous avez gagné !');
+        readln;
+        effacerEcran;
+        finCombat := true;
+        End;
+    end;
+    end;
+    if geekEquipe[numGeekemonEquipe].PVactuels <= 0 then
+    begin
+      nbGeekemonEquipeRestants := nbGeekemonEquipeRestants - 1;
+      case nbGeekemonEquipeRestants of
+        3 : Begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 1;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+
+      2 : Begin
+            case nbGeekemondeBase of
+            4 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 2;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+            3 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 1;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            end;
+            end;
+            End;
+
+      1 : Begin
+            case nbGeekemondeBase of
+            4 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 3;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            End;
+            3 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 2;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            end;
+            2 : begin
+            writeln ('Votre geekemon est K.O. !');
+            numGeekemonEquipe := 1;
+            writeln (geekEquipe[numGeekemonEquipe].nom, ' à toi de jouer ! ');
+            combatvsgeekdresseur(geekedex, geekEquipe, nbPotion, DressEquipe, numGeekemonEquipe, numDressEquipe);
+            end;
+            end;
+            End;
+      0 : Begin
+        writeln ('Vous n''avez plus de geekemons en forme ! Vous avez perdu ! Vous allez être renvoyé à l''ETTDG.');
+        readln;
+        effacerEcran;
+        soin (geekedex, geekEquipe, nbPotion, DressEquipe);
+        changementDeSalle (geekedex, geekEquipe, nbPotion,DressEquipe, nom1, avancement, nomDresseurs, equipeStockage,quitter);
+        End;
+    end;
+    end;
+  end;
+  end;
+end;
+
+////////////////////////////////////
+procedure experience (var geekEquipe : arrayOfEquipe; numGeekemonEquipe : integer);
+begin
+  geekEquipe[numGeekemonEquipe].EXP := geekEquipe[numGeekemonEquipe].EXP + 20;
+  writeln('Votre geekemon a désormais ',geekEquipe[numGeekemonEquipe].EXP, ' points d''expérience.');
+  //Le geekemon ne gagne que 20 points d'expérience à chaque combat.
+  readln;
+  effacerEcran;
+end;
+
+///////////////////////////////
+procedure niveau (var geekEquipe : arrayOfEquipe; numGeekemonEquipe : integer);
+begin
+  if ((geekEquipe[numGeekemonEquipe].EXP) >= (100)) then
+  begin
+    geekEquipe[numGeekemonEquipe].NIV := geekEquipe[numGeekemonEquipe].NIV +1;
+    geekEquipe[numGeekemonEquipe].EXP := geekEquipe[numGeekemonEquipe].EXP -100;
+    //On baisse l'xp à 100 pour que le geekemon reparte de 0 au niveau suivant.
+    geekEquipe[numGeekemonEquipe].COMP1 := geekEquipe[numGeekemonEquipe].COMP1 +2;
+    geekEquipe[numGeekemonEquipe].COMP2 := geekEquipe[numGeekemonEquipe].COMP2 +2;
+    geekEquipe[numGeekemonEquipe].COMP3 := geekEquipe[numGeekemonEquipe].COMP3 +2;
+    geekEquipe[numGeekemonEquipe].DEF := geekEquipe[numGeekemonEquipe].DEF +2;
+    geekEquipe[numGeekemonEquipe].PVdeBase := geekEquipe[numGeekemonEquipe].PVdeBase +3;
+    geekEquipe[numGeekemonEquipe].PVactuels := geekEquipe[numGeekemonEquipe].PVdeBase;
+    writeln (geekEquipe[numGeekemonEquipe].nom,' est passé au niveau ', geekEquipe[numGeekemonEquipe].NIV, ' !');
+    readln;
+    effacerEcran;
+  end;
+end;
+
+/////////////////////////////////////
+procedure evolution (var geekEquipe : arrayOfEquipe; numGeekemonEquipe : integer);
+
+begin
+  if ((geekEquipe[numGeekemonEquipe].NIV) = (10)) then
+  begin
+    writeln (geekEquipe[numGeekemonEquipe].nom,' a évolué, il peut désormais utilisé sa troisième compétence ',geekEquipe[numGeekemonEquipe].nomComp3, ' !');
+    readln;
+    effacerEcran;
+    geekEquipe[numGeekemonEquipe].accesCompetence3 := True;
+  end;
+end;
+end.
